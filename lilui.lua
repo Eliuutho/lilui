@@ -1,25 +1,19 @@
 -- ═══════════════════════════════════════════════════════════════
--- LIL UI v1.1 — Librería UI custom para Roblox executors
--- API estilo WindUI. Glass-morphism, gradient animado, anti-detección.
+-- LIL UI — Librería UI custom. Glass-morphism, gradient animado.
 --
 -- USO:
--- local UI = loadstring(game:HttpGet("https://scan-inventory.elxy.dev/lib.lua"))()
+-- local UI = loadstring(game:HttpGet("https://keys.elxy.dev/lilui.lua"))()
 -- local Window = UI:CreateWindow({ Title = "My Script", Author = "me" })
 -- local Tab = Window:Tab({ Title = "Main" })
 -- Tab:Section({ Title = "Section" })
 -- Tab:Paragraph({ Title = "Info", Desc = "..." })
 -- Tab:Button({ Title = "Click", Callback = function() end })
--- Tab:Toggle({ Title = "Switch", Value = false, Callback = function(v) end })  -- v1.1
--- Tab:Slider({ Title = "Vol", Value = {Min=0, Max=100, Default=50}, Callback = function(v) end })  -- v1.1
--- Tab:Colorpicker({ Title = "Color", Default = Color3.new(1,1,1), Callback = function(c) end })  -- v1.1
+-- Tab:Toggle({ Title = "Switch", Value = false, Callback = function(v) end })
+-- Tab:Slider({ Title = "Vol", Value = {Min=0, Max=100, Default=50}, Callback = function(v) end })
+-- Tab:Colorpicker({ Title = "Color", Default = Color3.new(1,1,1), Callback = function(c) end })
 -- Tab:Dropdown({ Title = "Pick", Values = {"a","b"}, Value = "a", Callback = function(v) end })
 -- Tab:Keybind({ Title = "Bind", Value = "P", Callback = function(k) end })
 -- UI:Notify({ Title = "Hello", Content = "World", Duration = 3 })
---
--- CHANGELOG v1.1:
---  - Tab:Toggle, Tab:Slider, Tab:Colorpicker añadidos
---  - Keybind ahora expone .Value (lectura) y :Set(key) (escritura)
---  - Toggle/Slider/Colorpicker exponen .Value y :Set(x)
 -- ═══════════════════════════════════════════════════════════════
 
 return (function()
@@ -383,8 +377,8 @@ local function makeWindow(opts)
         local function nx() order = order + 1; return order end
 
         function tab:Section(o2)
-            local f = new("Frame", {Parent = scroll, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = nx()})
-            local t = text(f, string.upper(o2.Title or ""), {font = Enum.Font.GothamBold, size = 10, color = C.mute})
+            local f = new("Frame", {Parent = scroll, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = nx()})
+            local t = text(f, string.upper(o2.Title or ""), {font = Enum.Font.GothamBold, size = 11, color = C.mute})
             t.Size = UDim2.new(1, 0, 1, 0)
             return f
         end
@@ -395,8 +389,8 @@ local function makeWindow(opts)
             corner(card, 8); stroke(card, C.line)
             new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
             new("UIListLayout", {Parent = card, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder})
-            local tL = text(card, o2.Title or "", {font = Enum.Font.GothamBold, size = 12}); tL.LayoutOrder = 1
-            local dL = text(card, o2.Desc or "", {size = 11, color = C.dim}); dL.LayoutOrder = 2
+            local tL = text(card, o2.Title or "", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+            local dL = text(card, o2.Desc or "", {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
             function s2:SetTitle(x) tL.Text = tostring(x or "") end
             function s2:SetDesc(x) dL.Text = tostring(x or "") end
             return s2
@@ -407,20 +401,26 @@ local function makeWindow(opts)
             corner(btn2, 8); stroke(btn2, C.line)
             new("UIPadding", {Parent = btn2, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
             new("UIListLayout", {Parent = btn2, Padding = UDim.new(0, 2)})
-            local tL = text(btn2, o2.Title or "Button", {font = Enum.Font.GothamSemibold, size = 12}); tL.LayoutOrder = 1
-            if o2.Desc and #o2.Desc > 0 then local dL = text(btn2, o2.Desc, {size = 11, color = C.dim}); dL.LayoutOrder = 2 end
+            local tL = text(btn2, o2.Title or "Button", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+            if o2.Desc and #o2.Desc > 0 then local dL = text(btn2, o2.Desc, {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2 end
             btn2.MouseEnter:Connect(function() tween(btn2, 0.1, {BackgroundColor3 = C.bg3, BackgroundTransparency = 0.15}):Play() end)
             btn2.MouseLeave:Connect(function() tween(btn2, 0.1, {BackgroundColor3 = C.bg2, BackgroundTransparency = 0.25}):Play() end)
             btn2.MouseButton1Click:Connect(function() if o2.Callback then task.spawn(function() pcall(o2.Callback) end) end end)
             return btn2
         end
 
-        -- ═══ TOGGLE (v1.1) ═══
+        -- ═══ TOGGLE ═══
         -- Switch on/off animado. Callback recibe boolean.
         -- API: obj.Value (boolean actual), obj:Set(bool) para setear programáticamente
         function tab:Toggle(o2)
             local s2 = {}
             local state = o2.Value == true
+            local hasDesc = o2.Desc and #tostring(o2.Desc) > 0
+
+            -- Padding adaptivo: cuando NO hay desc, el contenido es chico → reducimos
+            -- el padding vertical para que la fila quede compacta (sin espacios muertos).
+            -- Cuando SÍ hay desc, mantenemos el padding original.
+            local padY = hasDesc and 9 or 6
 
             local card = new("Frame", {
                 Parent = scroll,
@@ -431,7 +431,7 @@ local function makeWindow(opts)
                 LayoutOrder = nx(),
             })
             corner(card, 8); stroke(card, C.line)
-            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
+            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, padY), PaddingBottom = UDim.new(0, padY), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
 
             -- Lado izquierdo: title + desc
             local left = new("Frame", {
@@ -442,16 +442,17 @@ local function makeWindow(opts)
                 AutomaticSize = Enum.AutomaticSize.Y,
             })
             new("UIListLayout", {Parent = left, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder})
-            local tL = text(left, o2.Title or "Toggle", {font = Enum.Font.GothamSemibold, size = 12}); tL.LayoutOrder = 1
-            if o2.Desc and #tostring(o2.Desc) > 0 then
-                local dL = text(left, tostring(o2.Desc), {size = 11, color = C.dim}); dL.LayoutOrder = 2
+            local tL = text(left, o2.Title or "Toggle", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+            if hasDesc then
+                local dL = text(left, tostring(o2.Desc), {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
             end
 
-            -- Switch (track + knob)
+            -- Switch (track + knob). Centrado verticalmente para que se alinee con
+            -- el título tanto en filas con desc como sin desc.
             local track = new("TextButton", {
                 Parent = card,
-                AnchorPoint = Vector2.new(1, 0),
-                Position = UDim2.new(1, 0, 0, 4),
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position = UDim2.new(1, 0, 0.5, 0),
                 Size = UDim2.fromOffset(44, 22),
                 BackgroundColor3 = C.bg3,
                 BackgroundTransparency = 0.2,
@@ -509,7 +510,7 @@ local function makeWindow(opts)
                 state = newState
                 self.Value = state
                 applyVisual(true)
-                -- Por defecto :Set dispara el callback (compatibilidad con WindUI).
+                -- Por defecto :Set dispara el callback.
                 -- Pasar suppressCallback=true para seteo silencioso.
                 if not suppressCallback then fire() end
             end
@@ -524,7 +525,7 @@ local function makeWindow(opts)
             return s2
         end
 
-        -- ═══ SLIDER (v1.1) ═══
+        -- ═══ SLIDER ═══
         -- Deslizador numérico. Value puede ser:
         --   - tabla {Min=n, Max=n, Default=n}
         --   - número (usado como Default con Min=0 Max=100)
@@ -554,15 +555,34 @@ local function makeWindow(opts)
             new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
             new("UIListLayout", {Parent = card, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
 
-            -- Header con title + valor actual
-            local header = new("Frame", {Parent = card, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 16), LayoutOrder = 1})
-            local tL = text(header, o2.Title or "Slider", {font = Enum.Font.GothamSemibold, size = 12})
-            tL.Size = UDim2.new(1, -60, 1, 0); tL.TextYAlignment = Enum.TextYAlignment.Center
-            local valLbl = text(header, tostring(current), {font = Enum.Font.GothamBold, size = 12, color = C.accent, align = Enum.TextXAlignment.Right})
-            valLbl.AnchorPoint = Vector2.new(1, 0); valLbl.Position = UDim2.new(1, 0, 0, 0); valLbl.Size = UDim2.fromOffset(60, 16); valLbl.TextYAlignment = Enum.TextYAlignment.Center
+            -- Header con title + valor actual (editable)
+            local header = new("Frame", {Parent = card, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 1})
+            local tL = text(header, o2.Title or "Slider", {font = Enum.Font.GothamBold, size = 13})
+            tL.Size = UDim2.new(1, -78, 1, 0); tL.TextYAlignment = Enum.TextYAlignment.Center
+
+            -- valLbl es un TextBox editable: click → editar → Enter para guardar.
+            -- Se valida contra [minV, maxV] y se redondea a entero si isInt.
+            local valLbl = new("TextBox", {
+                Parent = header,
+                BackgroundColor3 = C.bg3,
+                BackgroundTransparency = 0.4,
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position = UDim2.new(1, 0, 0.5, 0),
+                Size = UDim2.fromOffset(72, 22),
+                Font = Enum.Font.GothamBold,
+                TextSize = 13,
+                TextColor3 = C.accent,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Text = tostring(current),
+                ClearTextOnFocus = true,
+                PlaceholderText = "",
+                AutoButtonColor = false,
+            })
+            corner(valLbl, 5); stroke(valLbl, C.line, 1)
 
             if o2.Desc and #tostring(o2.Desc) > 0 then
-                local dL = text(card, tostring(o2.Desc), {size = 11, color = C.dim}); dL.LayoutOrder = 2
+                local dL = text(card, tostring(o2.Desc), {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
             end
 
             -- Track del slider
@@ -602,18 +622,63 @@ local function makeWindow(opts)
             corner(knob, 7)
             stroke(knob, C.accent, 1)
 
+            local editing = false
             local function refreshVisual()
                 local t = (current - minV) / (maxV - minV)
                 t = clamp(t, 0, 1)
                 fill.Size = UDim2.new(t, 0, 1, 0)
                 knob.Position = UDim2.new(t, 0, 0.5, 0)
-                if isInt then
-                    valLbl.Text = tostring(math.floor(current + 0.5))
-                else
-                    valLbl.Text = string.format("%.2f", current)
+                -- No sobreescribimos el TextBox mientras el user está escribiendo
+                if not editing then
+                    if isInt then
+                        valLbl.Text = tostring(math.floor(current + 0.5))
+                    else
+                        valLbl.Text = string.format("%.2f", current)
+                    end
                 end
             end
             refreshVisual()
+
+            -- Hover visual del TextBox (indica que es clickeable)
+            valLbl.MouseEnter:Connect(function()
+                if not editing then
+                    tween(valLbl, 0.1, {BackgroundTransparency = 0.2}):Play()
+                end
+            end)
+            valLbl.MouseLeave:Connect(function()
+                if not editing then
+                    tween(valLbl, 0.1, {BackgroundTransparency = 0.4}):Play()
+                end
+            end)
+
+            valLbl.Focused:Connect(function()
+                editing = true
+                tween(valLbl, 0.1, {BackgroundTransparency = 0.1}):Play()
+            end)
+
+            -- FocusLost recibe `enterPressed` (true si fue por Enter, false si por click
+            -- afuera o Escape). En ambos casos parseamos. Si el input es inválido,
+            -- restauramos el último valor válido.
+            valLbl.FocusLost:Connect(function(enterPressed)
+                editing = false
+                tween(valLbl, 0.1, {BackgroundTransparency = 0.4}):Play()
+                local typed = valLbl.Text and valLbl.Text:gsub("[^%-%d%.]", "") or ""
+                local nv = tonumber(typed)
+                if nv then
+                    nv = clamp(nv, minV, maxV)
+                    if isInt then nv = math.floor(nv + 0.5) end
+                    if nv ~= current then
+                        current = nv
+                        s2.Value = current
+                        refreshVisual()
+                        if o2.Callback then task.spawn(function() pcall(o2.Callback, current) end) end
+                    else
+                        refreshVisual()  -- normaliza el texto (ej. user tipeó "10.0", muestra "10")
+                    end
+                else
+                    refreshVisual()  -- input inválido, restaurar
+                end
+            end)
 
             local function setFromX(mouseX)
                 local trackAbsX = track.AbsolutePosition.X
@@ -661,7 +726,7 @@ local function makeWindow(opts)
             return s2
         end
 
-        -- ═══ COLORPICKER (v1.1) ═══
+        -- ═══ COLORPICKER ═══
         -- Picker visual de color en HSV (cuadro saturación/valor + slider hue)
         function tab:Colorpicker(o2)
             local s2 = {}
@@ -689,7 +754,7 @@ local function makeWindow(opts)
                 AutoButtonColor = false,
                 LayoutOrder = 1,
             })
-            local tL = text(header, o2.Title or "Color", {font = Enum.Font.GothamSemibold, size = 12})
+            local tL = text(header, o2.Title or "Color", {font = Enum.Font.GothamBold, size = 13})
             tL.Size = UDim2.new(1, -38, 1, 0); tL.TextYAlignment = Enum.TextYAlignment.Center
 
             local preview = new("Frame", {
@@ -704,7 +769,7 @@ local function makeWindow(opts)
             stroke(preview, C.line)
 
             if o2.Desc and #tostring(o2.Desc) > 0 then
-                local dL = text(card, tostring(o2.Desc), {size = 11, color = C.dim}); dL.LayoutOrder = 2
+                local dL = text(card, tostring(o2.Desc), {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
             end
 
             -- Container del picker (se muestra al hacer click en el header)
@@ -900,7 +965,7 @@ local function makeWindow(opts)
             new("UIListLayout", {Parent = container, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
 
             local tL = text(container, o2.Title or "Dropdown", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
-            if o2.Desc and #o2.Desc > 0 then local dL = text(container, o2.Desc, {size = 12, color = C.dim}); dL.LayoutOrder = 2 end
+            if o2.Desc and #o2.Desc > 0 then local dL = text(container, o2.Desc, {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2 end
 
             local headerBtn = new("TextButton", {Parent = container, BackgroundColor3 = C.bg3, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 32), Text = "", AutoButtonColor = false, LayoutOrder = 3})
             corner(headerBtn, 6); stroke(headerBtn, C.line)
@@ -971,7 +1036,7 @@ local function makeWindow(opts)
             return s2
         end
 
-        -- ═══ KEYBIND (v1.1: ahora con .Value y :Set) ═══
+        -- ═══ KEYBIND ═══
         function tab:Keybind(o2)
             local s2 = {}
             local current = o2.Value or ""
@@ -983,8 +1048,8 @@ local function makeWindow(opts)
 
             local left = new("Frame", {Parent = card, BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, -84, 1, 0), AutomaticSize = Enum.AutomaticSize.Y})
             new("UIListLayout", {Parent = left, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder})
-            local tL = text(left, o2.Title or "Keybind", {font = Enum.Font.GothamSemibold, size = 12}); tL.LayoutOrder = 1
-            if o2.Desc and #o2.Desc > 0 then local dL = text(left, o2.Desc, {size = 11, color = C.dim}); dL.LayoutOrder = 2 end
+            local tL = text(left, o2.Title or "Keybind", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+            if o2.Desc and #o2.Desc > 0 then local dL = text(left, o2.Desc, {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2 end
 
             local kbtn = new("TextButton", {Parent = card, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 4), Size = UDim2.fromOffset(76, 26), BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2, Text = current, Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = C.text, AutoButtonColor = false})
             corner(kbtn, 5); stroke(kbtn, C.line)
@@ -1000,7 +1065,7 @@ local function makeWindow(opts)
                 local n = input.KeyCode and input.KeyCode.Name
                 if not n or n == "Unknown" then return end
                 current = n; kbtn.Text = n
-                s2.Value = n  -- v1.1: exponer el valor actual
+                s2.Value = n
                 tween(kbtn, 0.1, {BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2}):Play()
                 listening = false
                 if o2.Callback then task.spawn(function() pcall(o2.Callback, n) end) end

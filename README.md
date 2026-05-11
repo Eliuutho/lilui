@@ -1,8 +1,6 @@
 # LilUI
 
-Minimalist Roblox UI library for executors. Glass-morphism, animated gradient borders, Lucide icons, anti-detection by default.
-
-API-compatible with WindUI for drop-in replacement.
+Minimalist UI library. Glass-morphism, animated gradient borders, Lucide icons.
 
 ## Quick start
 
@@ -86,14 +84,7 @@ getgenv().LILUI_ICONS_URL = "https://your-domain.com/icons.lua"
 local UI = loadstring(game:HttpGet(".../lilui.lua"))()
 ```
 
-Useful if you want to serve icons from your own infrastructure (anti-detection).
-
-## Anti-detection
-
-- Parents to `gethui()` / `cloneref(CoreGui)` when available (hidden from game scripts)
-- All Instance names randomized hex on each load
-- No fixed string identifiers the game can grep for
-- Falls back to `PlayerGui` only if executor lacks bypass functions
+Useful if you want to serve icons from your own infrastructure.
 
 ## License
 

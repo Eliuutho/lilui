@@ -45,7 +45,18 @@ end
 local function new(cls, props)
     local i = Instance.new(cls)
     i.Name = rname()
-    if props then for k, v in pairs(props) do i[k] = v end end
+    -- Asignación robusta: si una propiedad no aplica a esta clase (ej. AutoButtonColor
+    -- en TextBox), pcall absorbe el error y seguimos construyendo el resto.
+    -- Sin esto, un solo property typo aborta la creación del widget y rompe en
+    -- cascada todo el script de arriba a abajo.
+    if props then
+        for k, v in pairs(props) do
+            local ok, err = pcall(function() i[k] = v end)
+            if not ok and (rawget(getfenv(), "warn") or warn) then
+                warn(("[LilUI] prop %q invalida en %s: %s"):format(tostring(k), cls, tostring(err)))
+            end
+        end
+    end
     return i
 end
 
@@ -555,13 +566,16 @@ local function makeWindow(opts)
             new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
             new("UIListLayout", {Parent = card, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
 
-            -- Header con title + valor actual (editable)
-            local header = new("Frame", {Parent = card, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 1})
+            -- Header con title + valor actual (editable). Altura 24 para que el TextBox
+            -- de 22px renderice completo (antes era 18 y se cortaba arriba/abajo).
+            local header = new("Frame", {Parent = card, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 24), LayoutOrder = 1})
             local tL = text(header, o2.Title or "Slider", {font = Enum.Font.GothamBold, size = 13})
             tL.Size = UDim2.new(1, -78, 1, 0); tL.TextYAlignment = Enum.TextYAlignment.Center
 
             -- valLbl es un TextBox editable: click → editar → Enter para guardar.
-            -- Se valida contra [minV, maxV] y se redondea a entero si isInt.
+            -- IMPORTANTE: NO incluir AutoButtonColor — es solo de TextButton, en TextBox
+            -- tira error y aborta la construcción del slider (rompe el track + todo el
+            -- script después). Pase eso antes y se rompió la UI.
             local valLbl = new("TextBox", {
                 Parent = header,
                 BackgroundColor3 = C.bg3,
@@ -575,9 +589,9 @@ local function makeWindow(opts)
                 TextXAlignment = Enum.TextXAlignment.Center,
                 TextYAlignment = Enum.TextYAlignment.Center,
                 Text = tostring(current),
-                ClearTextOnFocus = true,
+                ClearTextOnFocus = false,  -- preservar el valor actual al focar para editarlo
                 PlaceholderText = "",
-                AutoButtonColor = false,
+                TextEditable = true,
             })
             corner(valLbl, 5); stroke(valLbl, C.line, 1)
 

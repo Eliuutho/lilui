@@ -7,7 +7,7 @@ API-compatible with WindUI for drop-in replacement.
 ## Quick start
 
 ```lua
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/elxy/lilui/main/lilui.lua"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Eliuutho/lilui/main/lilui.lua"))()
 
 local Window = UI:CreateWindow({
     Title = "My Script",

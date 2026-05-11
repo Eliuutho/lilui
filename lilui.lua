@@ -78,7 +78,7 @@ return (function()
     -- Override esta URL con `getgenv().LILUI_ICONS_URL = "..."` antes de cargar
     -- si querés servir los icons desde otro endpoint (ej. tu propio VPS).
     local ICONS_URL = (getgenv and getgenv().LILUI_ICONS_URL)
-        or "https://raw.githubusercontent.com/elxy/lilui/main/icons.lua"
+        or "https://raw.githubusercontent.com/Eliuutho/lilui/main/icons.lua"
     local iconsData = nil
     local function getIcon(name)
         if not name then return nil end

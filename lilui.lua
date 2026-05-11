@@ -407,6 +407,58 @@ local function makeWindow(opts)
             return s2
         end
 
+        -- ═══ PLAYERCARD ═══
+        -- Tarjeta con avatar + título + subtítulo. Perfecto para mostrar "tu cuenta"
+        -- en una pestaña de créditos. Usa rbxthumb:// que carga sin yield.
+        -- API: tab:PlayerCard({ UserId = 123, Title = "DisplayName", Subtitle = "@user | ID: 123" })
+        function tab:PlayerCard(o2)
+            local s2 = {}
+            local card = new("Frame", {
+                Parent = scroll,
+                BackgroundColor3 = C.bg2,
+                BackgroundTransparency = 0.25,
+                Size = UDim2.new(1, 0, 0, 56),  -- altura fija para acomodar el avatar
+                LayoutOrder = nx(),
+            })
+            corner(card, 8); stroke(card, C.line)
+            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12)})
+
+            -- Avatar (rbxthumb URI carga sin necesidad de yield/HTTP)
+            local AVATAR_SIZE = 40
+            local userId = tonumber(o2.UserId) or 1
+            local avatar = new("ImageLabel", {
+                Parent = card,
+                BackgroundColor3 = C.bg3,
+                BackgroundTransparency = 0.3,
+                Position = UDim2.fromOffset(0, 0),
+                Size = UDim2.fromOffset(AVATAR_SIZE, AVATAR_SIZE),
+                Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150",
+                ScaleType = Enum.ScaleType.Fit,
+            })
+            corner(avatar, AVATAR_SIZE / 2)  -- circular
+            stroke(avatar, C.accent, 1)
+
+            -- Contenedor de texto a la derecha del avatar
+            local txt = new("Frame", {
+                Parent = card,
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(AVATAR_SIZE + 12, 0),
+                Size = UDim2.new(1, -(AVATAR_SIZE + 12), 1, 0),
+            })
+            new("UIListLayout", {Parent = txt, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center})
+
+            local tL = text(txt, o2.Title or "Player", {font = Enum.Font.GothamBold, size = 14}); tL.LayoutOrder = 1
+            local dL = text(txt, o2.Subtitle or "", {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
+
+            function s2:SetTitle(x) tL.Text = tostring(x or "") end
+            function s2:SetSubtitle(x) dL.Text = tostring(x or "") end
+            function s2:SetUserId(id)
+                userId = tonumber(id) or 1
+                avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150"
+            end
+            return s2
+        end
+
         function tab:Button(o2)
             local btn2 = new("TextButton", {Parent = scroll, BackgroundColor3 = C.bg2, BackgroundTransparency = 0.25, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Text = "", AutoButtonColor = false, LayoutOrder = nx()})
             corner(btn2, 8); stroke(btn2, C.line)
@@ -1055,17 +1107,24 @@ local function makeWindow(opts)
             local s2 = {}
             local current = o2.Value or ""
             local listening = false
+            local hasDesc = o2.Desc and #tostring(o2.Desc) > 0
+
+            -- Padding adaptivo: si no hay desc, fila compacta para no malgastar
+            -- espacio vertical (igual patrón que aplicamos a Toggle).
+            local padY = hasDesc and 9 or 5
 
             local card = new("Frame", {Parent = scroll, BackgroundColor3 = C.bg2, BackgroundTransparency = 0.25, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = nx()})
             corner(card, 8); stroke(card, C.line)
-            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
+            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, padY), PaddingBottom = UDim.new(0, padY), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
 
             local left = new("Frame", {Parent = card, BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, -84, 1, 0), AutomaticSize = Enum.AutomaticSize.Y})
             new("UIListLayout", {Parent = left, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder})
             local tL = text(left, o2.Title or "Keybind", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
-            if o2.Desc and #o2.Desc > 0 then local dL = text(left, o2.Desc, {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2 end
+            if hasDesc then local dL = text(left, tostring(o2.Desc), {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2 end
 
-            local kbtn = new("TextButton", {Parent = card, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 4), Size = UDim2.fromOffset(76, 26), BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2, Text = current, Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = C.text, AutoButtonColor = false})
+            -- Botón centrado verticalmente al contenido (en vez de pegado arriba).
+            -- Bajamos de 26→22 px y centramos para que la fila quede más compacta.
+            local kbtn = new("TextButton", {Parent = card, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(72, 22), BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2, Text = current, Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = C.text, AutoButtonColor = false})
             corner(kbtn, 5); stroke(kbtn, C.line)
 
             kbtn.MouseButton1Click:Connect(function()

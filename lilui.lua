@@ -402,11 +402,11 @@ return (function()
                 corner(container, 8); stroke(container, C.line)
                 new("UIPadding", {Parent = container, PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
                 new("UIListLayout", {Parent = container, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
-                local tL = text(container, o2.Title or "Dropdown", {font = Enum.Font.GothamSemibold, size = 12}); tL.LayoutOrder = 1
-                if o2.Desc and #o2.Desc > 0 then local dL = text(container, o2.Desc, {size = 11, color = C.dim}); dL.LayoutOrder = 2 end
-                local headerBtn = new("TextButton", {Parent = container, BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2, Size = UDim2.new(1, 0, 0, 28), Text = "", AutoButtonColor = false, LayoutOrder = 3})
+                local tL = text(container, o2.Title or "Dropdown", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+                if o2.Desc and #o2.Desc > 0 then local dL = text(container, o2.Desc, {size = 12, color = C.dim}); dL.LayoutOrder = 2 end
+                local headerBtn = new("TextButton", {Parent = container, BackgroundColor3 = C.bg3, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 32), Text = "", AutoButtonColor = false, LayoutOrder = 3})
                 corner(headerBtn, 6); stroke(headerBtn, C.line)
-                local hL = text(headerBtn, tostring(current), {size = 11}); hL.Position = UDim2.fromOffset(10, 0); hL.Size = UDim2.new(1, -28, 1, 0); hL.TextYAlignment = Enum.TextYAlignment.Center; hL.TextTruncate = Enum.TextTruncate.AtEnd
+                local hL = text(headerBtn, tostring(current), {size = 13, font = Enum.Font.GothamSemibold}); hL.Position = UDim2.fromOffset(12, 0); hL.Size = UDim2.new(1, -32, 1, 0); hL.TextYAlignment = Enum.TextYAlignment.Center; hL.TextTruncate = Enum.TextTruncate.AtEnd
                 local arrow = text(headerBtn, "▼", {size = 10, color = C.dim, align = Enum.TextXAlignment.Center}); arrow.Position = UDim2.new(1, -22, 0, 0); arrow.Size = UDim2.fromOffset(16, 28); arrow.TextYAlignment = Enum.TextYAlignment.Center
 
                 local listFrame = new("Frame", {Parent = container, BackgroundColor3 = C.bg, BackgroundTransparency = 0.3, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Visible = false, LayoutOrder = 4})
@@ -417,19 +417,30 @@ return (function()
 
                 local function rebuild()
                     for _, c in ipairs(scrollList:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-                    local maxShow = 6
+                    local maxShow = 7
                     for i, v in ipairs(values) do
-                        local item = new("TextButton", {Parent = scrollList, BackgroundColor3 = C.bg2, BackgroundTransparency = 0.4, Size = UDim2.new(1, -4, 0, 24), Text = "", AutoButtonColor = false, LayoutOrder = i})
-                        corner(item, 4)
-                        local iL = text(item, tostring(v), {size = 11}); iL.Position = UDim2.fromOffset(8, 0); iL.Size = UDim2.new(1, -8, 1, 0); iL.TextYAlignment = Enum.TextYAlignment.Center; iL.TextTruncate = Enum.TextTruncate.AtEnd
-                        item.MouseEnter:Connect(function() tween(item, 0.1, {BackgroundColor3 = C.bg3, BackgroundTransparency = 0.1}):Play() end)
-                        item.MouseLeave:Connect(function() tween(item, 0.1, {BackgroundColor3 = C.bg2, BackgroundTransparency = 0.4}):Play() end)
+                        local item = new("TextButton", {Parent = scrollList, BackgroundColor3 = C.bg2, BackgroundTransparency = 0.3, Size = UDim2.new(1, -4, 0, 32), Text = "", AutoButtonColor = false, LayoutOrder = i})
+                        corner(item, 6)
+                        local iL = text(item, tostring(v), {size = 13, font = Enum.Font.GothamSemibold})
+                        iL.Position = UDim2.fromOffset(12, 0)
+                        iL.Size = UDim2.new(1, -12, 1, 0)
+                        iL.TextYAlignment = Enum.TextYAlignment.Center
+                        iL.TextTruncate = Enum.TextTruncate.AtEnd
+                        iL.TextColor3 = C.text
+                        item.MouseEnter:Connect(function()
+                            tween(item, 0.1, {BackgroundColor3 = C.bg3, BackgroundTransparency = 0.05}):Play()
+                            tween(iL, 0.1, {TextColor3 = C.accent}):Play()
+                        end)
+                        item.MouseLeave:Connect(function()
+                            tween(item, 0.1, {BackgroundColor3 = C.bg2, BackgroundTransparency = 0.3}):Play()
+                            tween(iL, 0.1, {TextColor3 = C.text}):Play()
+                        end)
                         item.MouseButton1Click:Connect(function()
                             current = v; hL.Text = tostring(v); listFrame.Visible = false; open = false; arrow.Text = "▼"
                             if o2.Callback then task.spawn(function() pcall(o2.Callback, v) end) end
                         end)
                     end
-                    scrollList.Size = UDim2.new(1, 0, 0, math.min(#values, maxShow) * 26)
+                    scrollList.Size = UDim2.new(1, 0, 0, math.min(#values, maxShow) * 34)
                 end
 
                 headerBtn.MouseButton1Click:Connect(function()

@@ -472,6 +472,78 @@ local function makeWindow(opts)
             return btn2
         end
 
+        -- ═══ INPUT ═══
+        -- Caja de texto editable. Callback se dispara al perder foco con Enter
+        -- (o explícitamente cuando el user clickea fuera). Útil para pegar keys,
+        -- nombres, URLs, etc.
+        -- API: o2.Title, o2.Desc, o2.Placeholder, o2.Default, o2.Callback(text)
+        --      obj.Value (string actual), obj:Set(text), obj:Clear()
+        function tab:Input(o2)
+            local s2 = {}
+            local current = tostring(o2.Default or "")
+            local hasDesc = o2.Desc and #tostring(o2.Desc) > 0
+            local padY = hasDesc and 9 or 7
+
+            local card = new("Frame", {Parent = scroll, BackgroundColor3 = C.bg2, BackgroundTransparency = 0.25, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = nx()})
+            corner(card, 8); stroke(card, C.line)
+            new("UIPadding", {Parent = card, PaddingTop = UDim.new(0, padY), PaddingBottom = UDim.new(0, padY), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
+            new("UIListLayout", {Parent = card, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
+
+            local tL = text(card, o2.Title or "Input", {font = Enum.Font.GothamBold, size = 13}); tL.LayoutOrder = 1
+            if hasDesc then
+                local dL = text(card, tostring(o2.Desc), {font = Enum.Font.Gotham, size = 12, color = C.dim}); dL.LayoutOrder = 2
+            end
+
+            local box = new("TextBox", {
+                Parent = card,
+                BackgroundColor3 = C.bg3,
+                BackgroundTransparency = 0.3,
+                Size = UDim2.new(1, 0, 0, 30),
+                Font = Enum.Font.Code,
+                TextSize = 13,
+                TextColor3 = C.text,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                PlaceholderText = tostring(o2.Placeholder or ""),
+                PlaceholderColor3 = C.mute,
+                Text = current,
+                ClearTextOnFocus = false,
+                LayoutOrder = 3,
+            })
+            corner(box, 6)
+            -- Capturamos la stroke para poder cambiar su Color en focus sin
+            -- crear strokes apilados (stroke() crea un Instance nuevo cada vez).
+            local boxStroke = stroke(box, C.line)
+            new("UIPadding", {Parent = box, PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10)})
+
+            local function commit(text)
+                current = text or ""
+                s2.Value = current
+                if o2.Callback then task.spawn(function() pcall(o2.Callback, current) end) end
+            end
+
+            box.Focused:Connect(function()
+                tween(box, 0.1, {BackgroundTransparency = 0.15}):Play()
+                pcall(function() boxStroke.Color = C.accent end)
+            end)
+            box.FocusLost:Connect(function(enter)
+                tween(box, 0.1, {BackgroundTransparency = 0.3}):Play()
+                pcall(function() boxStroke.Color = C.line end)
+                commit(box.Text)
+            end)
+
+            s2.Value = current
+            function s2:Set(t)
+                current = tostring(t or "")
+                box.Text = current
+                self.Value = current
+            end
+            function s2:Clear()
+                self:Set("")
+            end
+            return s2
+        end
+
         -- ═══ TOGGLE ═══
         -- Switch on/off animado. Callback recibe boolean.
         -- API: obj.Value (boolean actual), obj:Set(bool) para setear programáticamente

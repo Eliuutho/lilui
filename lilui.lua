@@ -254,14 +254,31 @@ local function makeWindow(opts)
     local accentLine = new("Frame", {Parent = titleBar, BackgroundColor3 = Color3.new(1, 1, 1), Position = UDim2.new(0, 0, 1, -1), Size = UDim2.new(1, 0, 0, 1), BorderSizePixel = 0, BackgroundTransparency = 0.2})
     makeRainbowGradient(accentLine, 0)
 
+    -- Logo opcional en el title bar (a la izquierda del Title).
+    -- Acepta: URL https/http, rbxassetid://, rbxthumb://, o rbxasset://
+    -- Si opts.Icon es nil, no se muestra logo y el title arranca desde x=16 como antes.
+    local titleX = 16
+    if opts.Icon and type(opts.Icon) == "string" and #opts.Icon > 0 then
+        local logo = new("ImageLabel", {
+            Parent = titleBar,
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(10, 7),
+            Size = UDim2.fromOffset(24, 24),
+            Image = opts.Icon,
+            ScaleType = Enum.ScaleType.Fit,
+        })
+        corner(logo, 6)  -- esquina sutil para que el squircle del logo combine
+        titleX = 40  -- correr el title a la derecha para hacer lugar al logo
+    end
+
     local title = text(titleBar, opts.Title or "lil ui", {font = Enum.Font.GothamBold, size = 13})
-    title.Position = UDim2.fromOffset(16, 0)
-    title.Size = UDim2.new(1, -100, 1, 0)
+    title.Position = UDim2.fromOffset(titleX, 0)
+    title.Size = UDim2.new(1, -100 - (titleX - 16), 1, 0)
     title.TextYAlignment = Enum.TextYAlignment.Center
 
     if opts.Author then
         local author = text(titleBar, opts.Author, {size = 10, color = C.mute})
-        author.Position = UDim2.fromOffset(16 + 8 + (#(opts.Title or "") * 7), 2)
+        author.Position = UDim2.fromOffset(titleX + 8 + (#(opts.Title or "") * 7), 2)
         author.Size = UDim2.new(0, 100, 1, 0)
         author.TextYAlignment = Enum.TextYAlignment.Center
     end

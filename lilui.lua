@@ -60,6 +60,60 @@ local function new(cls, props)
     return i
 end
 
+-- ═══════════════════════════════════════════════════════════════
+-- resolveImage: convierte una URL HTTPS o un URI Roblox en algo que
+-- ImageLabel.Image pueda renderizar.
+--
+-- Roblox bloquea URLs externas en ImageLabel.Image — solo acepta:
+--   rbxassetid://, rbxthumb://, rbxasset://, rbxhttp://, ?id=N
+-- Por eso para URLs HTTP(S) tenemos que bajar el PNG, guardarlo en disco
+-- del executor, y resolverlo a un URI local vía getcustomasset.
+--
+-- Cache: el archivo se nombra por hash de la URL, así múltiples logos no
+-- colisionan y bajadas siguientes hacen hit en disco.
+-- ═══════════════════════════════════════════════════════════════
+local function _hashStr(s)
+    local h = 5381
+    for i = 1, #s do h = ((h * 33) + string.byte(s, i)) % 2147483647 end
+    return string.format("%x", h)
+end
+
+local _imgCache = {}  -- url → resolved URI (memo en memoria por sesión)
+
+local function resolveImage(src)
+    if type(src) ~= "string" or #src == 0 then return nil end
+    -- Pass-through: URIs nativos de Roblox ya funcionan directo
+    if src:match("^rbx") or src:match("^https://www%.roblox%.com") then return src end
+    -- Cache en memoria para esta sesión
+    if _imgCache[src] then return _imgCache[src] end
+    -- HTTPS/HTTP: descargar + cachear en disco + resolver
+    if src:match("^https?://") then
+        local fname = "lilui_img_" .. _hashStr(src) .. ".png"
+        -- Si writefile/isfile no están disponibles, no podemos cachear
+        if not (writefile and isfile) then return nil end
+        if not isfile(fname) then
+            local ok, data = pcall(function() return game:HttpGet(src) end)
+            if not ok or type(data) ~= "string" or #data < 100 then return nil end
+            local okw = pcall(writefile, fname, data)
+            if not okw then return nil end
+        end
+        -- Detectar la función para resolver disco → asset URI (varía por executor)
+        local getAsset = rawget(getfenv(), "getcustomasset")
+                      or rawget(getfenv(), "getsynasset")
+                      or rawget(getfenv(), "get_custom_asset")
+                      or (syn and syn.cached_asset)
+        if not getAsset then return nil end
+        local ok2, uri = pcall(getAsset, fname)
+        if ok2 and type(uri) == "string" and #uri > 0 then
+            _imgCache[src] = uri
+            return uri
+        end
+        return nil
+    end
+    -- Fallback: asumir que es un URI ya válido (ej. un usuario que lo pasa raw)
+    return src
+end
+
 local C = {
     bg = Color3.fromRGB(10, 12, 18),
     bg2 = Color3.fromRGB(20, 24, 34),
@@ -255,20 +309,25 @@ local function makeWindow(opts)
     makeRainbowGradient(accentLine, 0)
 
     -- Logo opcional en el title bar (a la izquierda del Title).
-    -- Acepta: URL https/http, rbxassetid://, rbxthumb://, o rbxasset://
-    -- Si opts.Icon es nil, no se muestra logo y el title arranca desde x=16 como antes.
+    -- Acepta URL HTTPS o URI Roblox; resolveImage maneja la descarga + cache
+    -- + getcustomasset internamente para URLs externas.
     local titleX = 16
     if opts.Icon and type(opts.Icon) == "string" and #opts.Icon > 0 then
-        local logo = new("ImageLabel", {
-            Parent = titleBar,
-            BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(10, 7),
-            Size = UDim2.fromOffset(24, 24),
-            Image = opts.Icon,
-            ScaleType = Enum.ScaleType.Fit,
-        })
-        corner(logo, 6)  -- esquina sutil para que el squircle del logo combine
-        titleX = 40  -- correr el title a la derecha para hacer lugar al logo
+        local resolved = resolveImage(opts.Icon)
+        if resolved then
+            local logo = new("ImageLabel", {
+                Parent = titleBar,
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(10, 7),
+                Size = UDim2.fromOffset(24, 24),
+                Image = resolved,
+                ScaleType = Enum.ScaleType.Fit,
+            })
+            corner(logo, 6)
+            titleX = 40
+        end
+        -- Si resolveImage devolvió nil (sin writefile, sin getcustomasset, etc.),
+        -- silenciosamente no mostramos logo. El title se queda en x=16.
     end
 
     local title = text(titleBar, opts.Title or "lil ui", {font = Enum.Font.GothamBold, size = 13})

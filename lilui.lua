@@ -80,36 +80,59 @@ end
 
 local _imgCache = {}  -- url → resolved URI (memo en memoria por sesión)
 
+-- Busca una función global en _G, getgenv(), o getfenv(). Los executors la
+-- exponen en distintos lugares — esto cubre todos los casos comunes (Xeno,
+-- Synapse, Wave, Krnl, Fluxus, AWP).
+local function _findGlobalFn(name)
+    local fn
+    pcall(function() fn = _G[name] end);                           if type(fn) == "function" then return fn end
+    pcall(function() fn = (getgenv and getgenv() or {})[name] end); if type(fn) == "function" then return fn end
+    pcall(function() fn = (getfenv() or {})[name] end);             if type(fn) == "function" then return fn end
+    return nil
+end
+
+local function _findGetAsset()
+    return _findGlobalFn("getcustomasset")
+        or _findGlobalFn("getsynasset")
+        or _findGlobalFn("get_custom_asset")
+        or (syn and type(syn.cached_asset) == "function" and syn.cached_asset)
+        or nil
+end
+
+-- Resolve devuelve (uri, err). err es nil en éxito, o un string corto que
+-- describe el motivo del fallo cuando uri=nil. Permite que el llamador
+-- decida si loggear o silenciar.
 local function resolveImage(src)
-    if type(src) ~= "string" or #src == 0 then return nil end
+    if type(src) ~= "string" or #src == 0 then return nil, "empty_src" end
     -- Pass-through: URIs nativos de Roblox ya funcionan directo
     if src:match("^rbx") or src:match("^https://www%.roblox%.com") then return src end
     -- Cache en memoria para esta sesión
     if _imgCache[src] then return _imgCache[src] end
-    -- HTTPS/HTTP: descargar + cachear en disco + resolver
+
     if src:match("^https?://") then
+        if not (writefile and isfile) then return nil, "no_writefile_or_isfile" end
+
         local fname = "lilui_img_" .. _hashStr(src) .. ".png"
-        -- Si writefile/isfile no están disponibles, no podemos cachear
-        if not (writefile and isfile) then return nil end
         if not isfile(fname) then
             local ok, data = pcall(function() return game:HttpGet(src) end)
-            if not ok or type(data) ~= "string" or #data < 100 then return nil end
-            local okw = pcall(writefile, fname, data)
-            if not okw then return nil end
+            if not ok then return nil, "httpget_error:" .. tostring(data) end
+            if type(data) ~= "string" then return nil, "httpget_not_string" end
+            if #data < 100 then return nil, "httpget_too_small:" .. tostring(#data) end
+            local okw, werr = pcall(writefile, fname, data)
+            if not okw then return nil, "writefile_error:" .. tostring(werr) end
         end
-        -- Detectar la función para resolver disco → asset URI (varía por executor)
-        local getAsset = rawget(getfenv(), "getcustomasset")
-                      or rawget(getfenv(), "getsynasset")
-                      or rawget(getfenv(), "get_custom_asset")
-                      or (syn and syn.cached_asset)
-        if not getAsset then return nil end
+
+        local getAsset = _findGetAsset()
+        if not getAsset then return nil, "no_getcustomasset_in_executor" end
+
         local ok2, uri = pcall(getAsset, fname)
-        if ok2 and type(uri) == "string" and #uri > 0 then
-            _imgCache[src] = uri
-            return uri
-        end
-        return nil
+        if not ok2 then return nil, "getcustomasset_error:" .. tostring(uri) end
+        if type(uri) ~= "string" or #uri == 0 then return nil, "getcustomasset_returned_empty" end
+
+        _imgCache[src] = uri
+        return uri
     end
+
     -- Fallback: asumir que es un URI ya válido (ej. un usuario que lo pasa raw)
     return src
 end
@@ -313,7 +336,7 @@ local function makeWindow(opts)
     -- + getcustomasset internamente para URLs externas.
     local titleX = 16
     if opts.Icon and type(opts.Icon) == "string" and #opts.Icon > 0 then
-        local resolved = resolveImage(opts.Icon)
+        local resolved, err = resolveImage(opts.Icon)
         if resolved then
             local logo = new("ImageLabel", {
                 Parent = titleBar,
@@ -325,9 +348,11 @@ local function makeWindow(opts)
             })
             corner(logo, 6)
             titleX = 40
+        elseif warn then
+            -- Diagnóstico visible en consola para saber por qué no cargó el logo.
+            warn(string.format("[LilUI] Window Icon no se pudo cargar: %s (URL: %s)",
+                tostring(err), tostring(opts.Icon)))
         end
-        -- Si resolveImage devolvió nil (sin writefile, sin getcustomasset, etc.),
-        -- silenciosamente no mostramos logo. El title se queda en x=16.
     end
 
     local title = text(titleBar, opts.Title or "lil ui", {font = Enum.Font.GothamBold, size = 13})

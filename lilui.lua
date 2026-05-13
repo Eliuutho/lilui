@@ -1300,8 +1300,20 @@ local function makeWindow(opts)
             local kbtn = new("TextButton", {Parent = card, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(72, 22), BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2, Text = current, Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = C.text, AutoButtonColor = false})
             corner(kbtn, 5); stroke(kbtn, C.line)
 
+            -- Flag publica: scripts pueden chequear obj.IsListening para
+            -- skipear sus listeners globales mientras el user re-asigna teclas.
+            -- Esto evita el bug donde la nueva tecla matchea con el nuevo
+            -- valor que LilUI acaba de setear y ejecuta acciones no deseadas.
+            s2.IsListening = false
+
+            -- Cooldown post-listen para suprimir el race-condition: a veces
+            -- el InputBegan global del consumidor llega DESPUES que LilUI
+            -- procesa la tecla. Exponemos un timestamp para que el consumidor
+            -- decida si ignorar inputs muy frescos despues de un rebind.
+            s2.LastBindTs = 0
+
             kbtn.MouseButton1Click:Connect(function()
-                listening = true; kbtn.Text = "..."
+                listening = true; s2.IsListening = true; kbtn.Text = "..."
                 tween(kbtn, 0.1, {BackgroundColor3 = C.accent, BackgroundTransparency = 0.1}):Play()
             end)
 
@@ -1314,6 +1326,8 @@ local function makeWindow(opts)
                 s2.Value = n
                 tween(kbtn, 0.1, {BackgroundColor3 = C.bg3, BackgroundTransparency = 0.2}):Play()
                 listening = false
+                s2.IsListening = false
+                s2.LastBindTs = tick()  -- marca para suprimir el siguiente input
                 if o2.Callback then task.spawn(function() pcall(o2.Callback, n) end) end
             end))
 
